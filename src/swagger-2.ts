@@ -47,6 +47,16 @@ function sanitize(name: string): string {
   return name.includes('-') ? `'${name}'` : name;
 }
 
+function sanitizeSpec(spec: Swagger2): Swagger2 {
+  const sanitizeDefinitions: { [index: string]: Swagger2Definition } = {};
+  for (const key in spec.definitions) {
+    if (spec.definitions.hasOwnProperty(key)) {
+      sanitizeDefinitions[key.replace(/\./g, '')] = spec.definitions[key];
+    }
+  }
+  return { definitions: sanitizeDefinitions };
+}
+
 function parse(spec: Swagger2, options: Swagger2Options = {}): string {
   const wrapper = options.wrapper || 'declare namespace OpenAPI2';
   const shouldCamelCase = options.camelcase || false;
@@ -56,10 +66,9 @@ function parse(spec: Swagger2, options: Swagger2Options = {}): string {
   const output: string[] = [];
   output.push(`${wrapper} {`);
 
-  const { definitions } = spec;
-
+  const { definitions } = sanitizeSpec(spec);
   function getRef(lookup: string): [string, Swagger2Definition] {
-    const ID = lookup.replace('#/definitions/', '');
+    const ID = lookup.replace('#/definitions/', '').replace(/\./g, '');
     const ref = definitions[ID];
     return [ID, ref];
   }
